@@ -9,6 +9,7 @@ from typing import Iterable
 
 from jira import JIRA, Issue
 from jira.exceptions import JIRAError
+import aiofiles, aiostream
 
 from gjira.output import write_error
 
@@ -40,7 +41,7 @@ def issue_attr(
     return tmp
 
 
-def get_issue(jira: JIRA, id: str, attributes: Iterable) -> dict:
+async def get_issue(jira: JIRA, id: str, attributes: Iterable) -> dict:
     try:
         issue = jira.issue(
             id, fields=", ".join(attr.split(".")[0] for attr in attributes)
@@ -59,27 +60,28 @@ def get_issue(jira: JIRA, id: str, attributes: Iterable) -> dict:
         return {}
 
 
-def is_gjira_in_file(path: str) -> bool:
-    with open(path) as fd:
-        for line in fd:
+async def is_gjira_in_file(path: str) -> bool:
+    async with aiofiles.open(path) as fd:
+        async for line in fd:
             if line.strip() == GJIRA_START_TEXT:
                 return True
         return False
 
 
-def update_commit_message(filename: str, content: str) -> list:
+async def update_commit_message(filename: str, content: str) -> list:
     if not content:
         return
 
-    with open(filename, "r+") as fd:
+    async with aiofiles.open(filename, "r+") as fd:
         pos = 0
         lines = []
-        for i, line in enumerate(fd):
-            lines.append(line)
-            # have we found where git default msg starts?
-            if line == GIT_START_LINES:
-                pos = i  # line number of git's default message
-                break
+        async with aiostream.stream.enumerate(fd).stream() as streamer:
+            async for i, line in streamer:
+                lines.append(line)
+                # have we found where git default msg starts?
+                if line == GIT_START_LINES:
+                    pos = i  # line number of git's default message
+                    break
 
         content = f"{GJIRA_START_TEXT}\n{content}\n"
         pos = pos if pos else -1
@@ -93,11 +95,11 @@ def update_commit_message(filename: str, content: str) -> list:
             content = f"\n{content}\n"
 
         # add fmt to the corresponding position and read any unread line
-        lines = lines + [content] + fd.readlines()
+        lines = lines + [content] + await fd.readlines()
 
         # Write lines back to file
-        fd.seek(0)
+        await fd.seek(0)
         for line in lines:
-            fd.write(line)
+            await fd.write(line)
 
         return lines

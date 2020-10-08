@@ -1,4 +1,5 @@
 from typing import Union
+import asyncio
 import re
 import subprocess
 import sys
@@ -6,15 +7,20 @@ import sys
 from gjira.output import write_error
 
 
-def get_branch_name() -> str:
-    return subprocess.check_output(("git", "rev-parse", "--abbrev-ref", "HEAD")).decode(
-        "UTF-8"
+async def get_branch_name() -> str:
+    proc = await asyncio.create_subprocess_shell(
+        " ".join(("git", "rev-parse", "--abbrev-ref", "HEAD")),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
+    stdout, stderr = await proc.communicate()
+    if stdout:
+        return stdout.decode("UTF-8")
 
 
-def get_branch_id(regex):
+async def get_branch_id(regex):
     compiled_re = re.compile(regex)
-    branch = get_branch_name()
+    branch = await get_branch_name()
 
     if not compiled_re.findall(branch):
         write_error(

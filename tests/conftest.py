@@ -2,8 +2,14 @@ import pytest
 
 from jira import JIRA
 from click.testing import CliRunner
+import aiofiles
+
 
 import random
+
+aiofiles.threadpool.wrap.register(mock.MagicMock)(
+    lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)
+)
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ from gjira.template import generate_template, get_template_context
 from .gjira import get_issue, get_jira_from_env, is_gjira_in_file, update_commit_message
 
 from .git import get_branch_id, get_branch_name, validate_branch_name
+from .coro import coro
 from gjira.output import write_error
 
 
@@ -18,7 +19,12 @@ from gjira.output import write_error
 @click.option(
     "--ignore-files",
     "-i",
-    default=",".join(("MERGE_MSG", "SQUASH_MSG",)),
+    default=",".join(
+        (
+            "MERGE_MSG",
+            "SQUASH_MSG",
+        )
+    ),
     show_default=True,
 )
 @click.option(
@@ -35,7 +41,8 @@ from gjira.output import write_error
     help="Number of HTTP retries. Default is 1",
 )
 @click.argument("filename")
-def cmd_update_commit_msg(
+@coro
+async def cmd_update_commit_msg(
     filename: str,
     board: str,
     regex: str,
@@ -50,11 +57,11 @@ def cmd_update_commit_msg(
         print(f"File '{filename}'. Skipping.")
         sys.exit(0)
 
-    if is_gjira_in_file(filename):
+    if await is_gjira_in_file(filename):
         write_error("Duplicated. Skipping")
         sys.exit(0)
 
-    task_id = get_branch_id(regex)
+    task_id = await get_branch_id(regex)
     options = get_jira_from_env()
 
     try:
@@ -64,15 +71,15 @@ def cmd_update_commit_msg(
         write_error(f"Python trackback {e}\n")
         sys.exit(1)
 
-    attributes = get_template_context(template)
-    issue = get_issue(jira, task_id, attributes)
+    attributes = await get_template_context(template)
+    issue = await get_issue(jira, task_id, attributes)
 
     if not issue.keys() or not issue.values():
         write_error(f"Issue '{task_id}' does not meet template criteria. Skipping")
         sys.exit(0)
 
-    content = generate_template(issue, template)
-    update_commit_message(filename, content)
+    content = await generate_template(issue, template)
+    await update_commit_message(filename, content)
 
 
 @click.command("check-branch")
@@ -84,8 +91,9 @@ def cmd_update_commit_msg(
     help="Regex of a branch format to validate",
 )
 @click.option("--branch", "-b", type=str)
-def cmd_validate_branch_name(regex: str, branch: str):
-    valid = validate_branch_name(branch or get_branch_name(), regex)
+@coro
+async def cmd_validate_branch_name(regex: str, branch: str):
+    valid = validate_branch_name(branch or await get_branch_name(), regex)
     if valid is None:
         write_error(
             f"Branch '{branch or get_branch_name()}' name requires the format of '{regex}'. Aborting."
