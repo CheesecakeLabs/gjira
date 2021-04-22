@@ -47,7 +47,7 @@ def cmd_update_commit_msg(
     template: str,
     max_retries: int,
     ignore_files: Union[Iterable, str],
-):      
+):
     if isinstance(ignore_files, str):
         ignore_files = ignore_files.split(",")
 
