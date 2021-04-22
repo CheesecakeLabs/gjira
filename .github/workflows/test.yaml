@@ -26,3 +26,7 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+        env:
+          jiraserver: https://domain.atlassian.net
+          jirauser: your@email.com
+          jiratoken: token
