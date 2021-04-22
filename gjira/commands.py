@@ -73,7 +73,7 @@ def cmd_update_commit_msg(
 
     except Exception as e:
         write_error(f"Error: Aborting", with_env=True)
-        write_error(f"Python trackback {e}\n")
+        write_error(f"Python traceback {e}\n")
         sys.exit(1)
 
     attributes = get_template_context(template)

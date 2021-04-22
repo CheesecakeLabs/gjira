@@ -42,7 +42,7 @@ def test_cmd_update_commit_msg_fails_on_board_not_found(
             ["--regex", "SKYR-\d+", "--board", "boardname", "COMMIT_MSG"],
         )
         assert result.exit_code == 1
-        assert result.output == "Error: Python trackback Board does not exist.\n\n"
+        assert result.output == "Error: Python traceback Board does not exist.\n\n"
         assert result.exc_info[0] == SystemExit
 
 
