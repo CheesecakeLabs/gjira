@@ -6,6 +6,8 @@ from gjira.commands import cmd_update_commit_msg, cmd_validate_branch_name
 
 def test_cmd_update_commit_msg(mocker, cli, git_branch, jira_connection, jira_issue):
     git_branch("SKYR-123")
+    mocker.patch("gjira.commands.ensure_board", return_value=True)
+
     with cli.isolated_filesystem():
         with open(".commit.template", "w") as commitf:
             commitf.write("Jira issue: {{key}}\nJira story {{parent__key}}")
@@ -22,9 +24,33 @@ def test_cmd_update_commit_msg(mocker, cli, git_branch, jira_connection, jira_is
         assert result.exception == None
 
 
+def test_cmd_update_commit_msg_fails_on_board_not_found(
+    mocker, cli, git_branch, jira_connection, jira_issue
+):
+    git_branch("SKYR-123")
+    mocker.patch("gjira.commands.ensure_board", return_value=False)
+
+    with cli.isolated_filesystem():
+        with open(".commit.template", "w") as commitf:
+            commitf.write("Jira issue: {{key}}\nJira story {{parent__key}}")
+
+        with open("COMMIT_MSG", "w") as msgf:
+            msgf.write("Feat: A commit message")
+
+        result = cli.invoke(
+            cmd_update_commit_msg,
+            ["--regex", "SKYR-\d+", "--board", "boardname", "COMMIT_MSG"],
+        )
+        assert result.exit_code == 1
+        assert result.output == "Error: Python traceback Board does not exist.\n\n"
+        assert result.exc_info[0] == SystemExit
+
+
 def test_cmd_update_commit_msg_with_ignored_file(
     mocker, cli, git_branch, jira_connection, jira_issue
 ):
+
+    mocker.patch("gjira.commands.ensure_board", return_value=True)
     with cli.isolated_filesystem():
         with open(".commit.template", "w") as commitf:
             commitf.write("Jira issue: {{key}}\nJira story {{parent__key}}")

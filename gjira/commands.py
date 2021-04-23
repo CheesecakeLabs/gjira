@@ -12,6 +12,10 @@ from .git import get_branch_id, get_branch_name, validate_branch_name
 from gjira.output import write_error
 
 
+def ensure_board(jira: JIRA):
+    return bool(jira.boards())
+
+
 @click.command("append-jira")
 @click.option("--board", "-b", required=True, type=str)
 @click.option("--regex", "-r", required=True, type=str)
@@ -47,7 +51,7 @@ def cmd_update_commit_msg(
     template: str,
     max_retries: int,
     ignore_files: Union[Iterable, str],
-):      
+):
     if isinstance(ignore_files, str):
         ignore_files = ignore_files.split(",")
 
@@ -64,11 +68,12 @@ def cmd_update_commit_msg(
         options = get_jira_from_env()
 
         jira = JIRA(**options, max_retries=max_retries)
-        # Ensure board permission
-        jira.boards()
+        if not ensure_board():
+            raise Exception("Board does not exist.")
+
     except Exception as e:
         write_error(f"Error: Aborting", with_env=True)
-        write_error(f"Python trackback {e}\n")
+        write_error(f"Python traceback {e}\n")
         sys.exit(1)
 
     attributes = get_template_context(template)
