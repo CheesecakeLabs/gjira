@@ -158,7 +158,7 @@ Finally, install `pre-push` hook: `pre-commit install --hook-type pre-push`
 
 ## Development
 
-1. Install requirements `pip install -r requirements.txt`
+1. Install requirements `pip install -r requirements.txt -r test_requirements.txt`
 2. Run `pytest` `pytest .`
 
 There are two ways of manually running GJira.
