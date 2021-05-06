@@ -68,7 +68,7 @@ def cmd_update_commit_msg(
         options = get_jira_from_env()
 
         jira = JIRA(**options, max_retries=max_retries)
-        if not ensure_board():
+        if not ensure_board(jira):
             raise Exception("Board does not exist.")
 
     except Exception as e:
